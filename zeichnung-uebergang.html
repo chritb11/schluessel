@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zeichnung Übergang FF / Schotter, Schnitt B-B</title>
+<style>
+:root{
+  --bg:#ECEAE4; --paper:#FFFFFF; --ink:#222; --muted:#666; --line:#CFCBC2;
+  --new:#D2461F; --hl:#FFF1D6; --ok:#2E6F48;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial, Helvetica, sans-serif;font-size:17px;line-height:1.45}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px 6px}
+.top h1{font-size:20px;margin:0}
+.top .sub{font-size:14px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:16px;padding:8px 20px 20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.sheet{background:var(--paper);border:1px solid #bbb;box-shadow:0 2px 6px rgba(0,0,0,.12);padding:8px}
+.sheet svg{display:block;width:100%;height:auto}
+.panel{background:var(--paper);border:1px solid #bbb;padding:16px 18px}
+.stepno{font-size:13px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:var(--new);margin:0 0 4px}
+.panel h2{font-size:22px;margin:0 0 10px}
+.panel p{margin:0 0 10px}
+.panel ul{margin:0 0 10px;padding-left:20px}
+.panel li{margin-bottom:4px}
+.paper{background:var(--hl);border-left:5px solid #E2A23B;padding:8px 12px;margin:10px 0}
+.paper .h{display:block;font-weight:bold;margin-bottom:2px}
+.tip{font-size:15px;color:#444;border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+table.calc{border-collapse:collapse;width:100%;font-size:15px;margin:6px 0 10px}
+table.calc td,table.calc th{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+table.calc th{background:#F4F2EC}
+.nav{display:flex;gap:8px;margin-top:14px}
+.nav button{flex:1;font:inherit;font-weight:bold;font-size:17px;padding:12px;border:2px solid var(--ink);background:var(--paper);cursor:pointer;border-radius:6px}
+.nav button.primary{background:var(--ink);color:#fff}
+.nav button[disabled]{opacity:.35;cursor:default}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
+.dots button{width:30px;height:30px;font:inherit;font-size:13px;border:1px solid var(--line);background:#F4F2EC;cursor:pointer;border-radius:4px;padding:0}
+.dots button.done{background:#555;color:#fff;border-color:#555}
+.dots button.now{background:var(--new);color:#fff;border-color:var(--new)}
+.legend{font-size:13px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-block;width:22px;height:4px;vertical-align:middle;margin:0 4px 0 10px}
+/* SVG */
+.st{display:none}
+.st.old,.st.new{display:inline}
+.st.old .ln{stroke:#222}
+.st.new .ln{stroke:var(--new)}
+.st.old .tx{fill:#222}
+.st.new .tx{fill:var(--new)}
+.st.old .ax{stroke:#555}
+.st.new .ax{stroke:var(--new)}
+.ln{fill:none;stroke-width:1.4}
+.ln.thin{stroke-width:.7}
+.ln.thick{stroke-width:2.2}
+.ax{stroke-width:.8;stroke-dasharray:14 3 2 3;fill:none}
+.tx{font-family:Arial, sans-serif;font-size:13px}
+.tx.hw{font-size:15px}
+.tx.title{font-size:20px;font-weight:bold}
+</style></head>
+<body>
+<div class="top">
+  <h1>LF 14: Übergang Feste Fahrbahn auf Schotter, Schnitt B-B (M 1:10)</h1>
+  <div class="sub">Schritt für Schritt zur Zeichnung · Pfeiltasten ← → zum Blättern</div>
+</div>
+<div class="layout">
+  <div class="sheet"><svg id="svg" viewBox="0 0 1000 585" xmlns="http://www.w3.org/2000/svg" aria-label="Zeichnung Schnitt B-B"></svg>
+    <div class="legend">Farbe: <span style="background:#D2461F"></span>neu in diesem Schritt <span style="background:#222"></span>schon gezeichnet</div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+<script>
+/* ===== Geometrie in cm (Wirklichkeit). x: 0 = Stützpunktachse, y: 0 = OK Unterbau ===== */
+const G={
+  xL:-32.5, xE:30, xS:60, xR:90,
+  ub:30, vg:38, gtp:54, stp:59.6, sok:76.8,
+  stpB:16,
+  swBot:37.9, swTop:59.6, swU:30, swO:26.2,
+  schotter:56.9
+};
+const S=4.4;                    // px je cm
+const OX=335, OY=470;           // Lage des Nullpunkts im SVG
+const X=x=>OX+x*S, Y=y=>OY-y*S;
+const f=n=>(+n).toFixed(1);
+
+const parts=[]; // {step, svg}
+function add(step,svg){parts.push({step,svg});}
+const line=(x1,y1,x2,y2,cls="ln")=>`<line class="${cls}" x1="${f(X(x1))}" y1="${f(Y(y1))}" x2="${f(X(x2))}" y2="${f(Y(y2))}"/>`;
+const rect=(x1,y1,x2,y2,cls="ln")=>`<rect class="${cls}" x="${f(X(x1))}" y="${f(Y(y2))}" width="${f((x2-x1)*S)}" height="${f((y2-y1)*S)}"/>`;
+const poly=(pts,cls="ln")=>`<polygon class="${cls}" points="${pts.map(p=>f(X(p[0]))+","+f(Y(p[1]))).join(" ")}"/>`;
+const txt=(x,y,t,cls="tx",anchor="middle",rot=0)=>`<text class="${cls}" x="${f(x)}" y="${f(y)}" text-anchor="${anchor}" ${rot?`transform="rotate(${rot} ${f(x)} ${f(y)})"`:""}>${t}</text>`;
+
+/* --- Schritt 2: Bezugslinien, Achsen, Bruchkanten --- */
+add(2, line(G.xL-6,0,G.xR+6,0,"ln thin")
+   + `<path class="ax" d="M${f(X(0))} ${f(Y(-4))} V ${f(Y(G.sok+12))}"/>`
+   + `<path class="ax" d="M${f(X(G.xS))} ${f(Y(-4))} V ${f(Y(G.sok+12))}"/>`
+   + `<path class="ln thin" stroke-dasharray="6 4" d="M${f(X(G.xL))} ${f(Y(-2))} V ${f(Y(G.sok+4))} M${f(X(G.xR))} ${f(Y(-2))} V ${f(Y(G.sok+4))}"/>`
+   + txt(X(G.xR+8),Y(0)+4,"OK Unterbau","tx","start"));
+
+/* --- Schritt 3: Unterbeton --- */
+add(3, rect(G.xL,0,G.xE,G.ub));
+/* --- Schritt 4: Vergussbeton --- */
+add(4, rect(G.xL,G.ub,G.xE,G.vg));
+/* --- Schritt 5: Gleistragplatte --- */
+add(5, rect(G.xL,G.vg,G.xE,G.gtp));
+/* --- Schritt 6: Stützpunkt --- */
+add(6, rect(-G.stpB/2,G.gtp,G.stpB/2,G.stp));
+/* --- Schritt 7: Schwelle --- */
+const swPts=[[G.xS-G.swU/2,G.swBot],[G.xS+G.swU/2,G.swBot],[G.xS+G.swO/2,G.swTop],[G.xS-G.swO/2,G.swTop]];
+add(7, poly(swPts));
+/* --- Schritt 8: Schiene (Seitenansicht) --- */
+add(8, line(G.xL,G.sok,G.xR,G.sok,"ln thick") + line(G.xL,G.stp,G.xR,G.stp,"ln")
+   + line(G.xL,G.sok-4.6,G.xR,G.sok-4.6,"ln thin") + line(G.xL,G.stp+1.4,G.xR,G.stp+1.4,"ln thin")
+   + line(G.xL,G.stp,G.xL,G.sok) + line(G.xR,G.stp,G.xR,G.sok));
+/* --- Schritt 9: Schotterbett --- */
+(function(){
+  let d=`M${f(X(G.xE))} ${f(Y(G.schotter))}`;
+  const x0=G.xE, x1=G.xS-G.swO/2-0.8;
+  for(let x=x0;x<x1;x+=3){d+=` Q ${f(X(x+0.75))} ${f(Y(G.schotter+0.9))} ${f(X(Math.min(x+1.5,x1)))} ${f(Y(G.schotter))} T ${f(X(Math.min(x+3,x1)))} ${f(Y(G.schotter))}`;}
+  let d2=`M${f(X(G.xS+G.swO/2+0.8))} ${f(Y(G.schotter))}`;
+  for(let x=G.xS+G.swO/2+0.8;x<G.xR;x+=3){d2+=` Q ${f(X(x+0.75))} ${f(Y(G.schotter+0.9))} ${f(X(Math.min(x+1.5,G.xR)))} ${f(Y(G.schotter))} T ${f(X(Math.min(x+3,G.xR)))} ${f(Y(G.schotter))}`;}
+  add(9, `<path class="ln" d="${d}"/><path class="ln" d="${d2}"/>` + line(G.xE,0,G.xE,G.schotter) + line(G.xR,0,G.xR,G.schotter));
+})();
+
+/* --- Schritt 10: Schraffuren --- */
+function hatchRect(x1,y1,x2,y2,type){
+  let s=`<clipPath id="c${parts.length}${type}"><rect x="${f(X(x1))}" y="${f(Y(y2))}" width="${f((x2-x1)*S)}" height="${f((y2-y1)*S)}"/></clipPath><g clip-path="url(#c${parts.length}${type})">`;
+  s+=hatchLines(X(x1),Y(y2),X(x2),Y(y1),type);
+  return s+`</g>`;
+}
+function hatchLines(ax,ay,bx,by,type){
+  let s="", w=bx-ax, h=by-ay, step;
+  if(type==="stb"){ // Stahl-/Spannbeton: Linie voll + Strichlinie im Wechsel, 45°
+    step=16; for(let k=-h;k<w+h;k+=step){ s+=`<line class="ln thin" x1="${f(ax+k)}" y1="${f(by)}" x2="${f(ax+k+h)}" y2="${f(ay)}"/>`;
+      s+=`<line class="ln thin" stroke-dasharray="7 5" x1="${f(ax+k+step/2)}" y1="${f(by)}" x2="${f(ax+k+step/2+h)}" y2="${f(ay)}"/>`; }
+  } else if(type==="vg"){ // Vergussbeton: Strichlinien 45°
+    step=10; for(let k=-h;k<w+h;k+=step){ s+=`<line class="ln thin" stroke-dasharray="7 5" x1="${f(ax+k)}" y1="${f(by)}" x2="${f(ax+k+h)}" y2="${f(ay)}"/>`; }
+  } else if(type==="ub"){ // Unterbeton: Strichlinien, Gegenrichtung
+    step=16; for(let k=-h;k<w+h;k+=step){ s+=`<line class="ln thin" stroke-dasharray="10 8" x1="${f(ax+k)}" y1="${f(ay)}" x2="${f(ax+k+h)}" y2="${f(by)}"/>`; }
+  }
+  return s;
+}
+(function(){
+  let s=hatchRect(G.xL,0,G.xE,G.ub,"ub")+hatchRect(G.xL,G.ub,G.xE,G.vg,"vg")+hatchRect(G.xL,G.vg,G.xE,G.gtp,"stb");
+  // Schwelle
+  const pts=swPts.map(p=>f(X(p[0]))+","+f(Y(p[1]))).join(" ");
+  s+=`<clipPath id="csw"><polygon points="${pts}"/></clipPath><g clip-path="url(#csw)">`+hatchLines(X(G.xS-16),Y(G.swTop),X(G.xS+16),Y(G.swBot),"stb")+`</g>`;
+  // Schotter: senkrechte Linien mit Rauten
+  const xs=[]; for(let x=G.xE+6;x<G.xR-2;x+=7.5){ if(Math.abs(x-G.xS)>G.swU/2+1.5 || true) xs.push(x); }
+  xs.forEach((x,i)=>{
+    const top = (Math.abs(x-G.xS)<G.swU/2+1) ? G.swBot-0.6 : G.schotter-1.2;
+    s+=line(x,1,x,top,"ln thin");
+    for(let y=6+(i%2)*7; y<top-3; y+=14){
+      const cx=X(x), cy=Y(y);
+      s+=`<polygon class="ln thin" points="${f(cx)},${f(cy-5)} ${f(cx+4)},${f(cy)} ${f(cx)},${f(cy+5)} ${f(cx-4)},${f(cy)}"/>`;
+    }
+  });
+  add(10,s);
+})();
+
+/* --- Schritt 11: Bemaßung --- */
+function dimH(x1,x2,y,label,ext=true){ // waagerecht, y in px
+  let s=`<line class="ln thin" x1="${f(X(x1)-6)}" y1="${f(y)}" x2="${f(X(x2)+6)}" y2="${f(y)}"/>`;
+  [x1,x2].forEach(x=>{s+=`<line class="ln thin" x1="${f(X(x)-4)}" y1="${f(y+4)}" x2="${f(X(x)+4)}" y2="${f(y-4)}"/>`; if(ext) s+=`<line class="ln thin" x1="${f(X(x))}" y1="${f(y-6)}" x2="${f(X(x))}" y2="${f(y+6)}"/>`;});
+  s+=txt((X(x1)+X(x2))/2,y-5,label,"tx hw");
+  return s;
+}
+function dimV(y1,y2,x,label,side="l"){ // senkrecht, x in px
+  let s=`<line class="ln thin" x1="${f(x)}" y1="${f(Y(y1)+6)}" x2="${f(x)}" y2="${f(Y(y2)-6)}"/>`;
+  [y1,y2].forEach(y=>{s+=`<line class="ln thin" x1="${f(x-4)}" y1="${f(Y(y)+4)}" x2="${f(x+4)}" y2="${f(Y(y)-4)}"/><line class="ln thin" x1="${f(x-6)}" y1="${f(Y(y))}" x2="${f(x+6)}" y2="${f(Y(y))}"/>`;});
+  const ym=(Y(y1)+Y(y2))/2;
+  s+= side==="l" ? txt(x-6,ym,label,"tx hw","middle",-90) : txt(x+16,ym,label,"tx hw","middle",-90);
+  return s;
+}
+(function(){
+  let s="";
+  const yTop=Y(G.sok+14);
+  s+=dimH(-65,0,yTop,"65")+dimH(0,G.xS,yTop,"ca. 60")+dimH(G.xS,G.xS+60,yTop,"60");
+  // links: Einzelmaße und Gesamtmaß
+  const xa=X(G.xL)-26, xb=X(G.xL)-62;
+  s+=dimV(0,G.ub,xa,"30")+dimV(G.ub,G.vg,xa,"8")+dimV(G.vg,G.gtp,xa,"16")+dimV(G.gtp,G.stp,xa,"5,6")+dimV(G.stp,G.sok,xa,"17,2");
+  s+=dimV(G.vg,G.sok,xb,"38,8");
+  // rechts: Schwelle
+  const xc=X(G.xR)+24, xd=X(G.xR)+60;
+  s+=dimV(G.swTop,G.sok,xc,"17,2","r")+dimV(G.schotter,G.swTop,xc,"2,7","r")+dimV(G.swBot,G.schotter,xc,"19","r");
+  s+=dimV(G.swBot,G.swTop,xd,"21,7","r");
+  // unten: Schwellenbreite
+  const yb=Y(-7), yb2=Y(-15);
+  s+=`<line class="ln thin" x1="${f(X(G.xS-15)-6)}" y1="${f(yb)}" x2="${f(X(G.xS+15)+6)}" y2="${f(yb)}"/>`;
+  [G.xS-15,G.xS-13.1,G.xS+13.1,G.xS+15].forEach(x=>{s+=`<line class="ln thin" x1="${f(X(x)-3)}" y1="${f(yb+3)}" x2="${f(X(x)+3)}" y2="${f(yb-3)}"/>`;});
+  s+=txt(X(G.xS-17),yb-4,"1,9","tx","end")+txt(X(G.xS),yb-5,"26,2","tx hw")+txt(X(G.xS+17),yb-4,"1,9","tx","start");
+  s+=dimH(G.xS-15,G.xS+15,yb2+14,"30");
+  // Hilfslinien Schwellenkanten nach unten
+  [G.xS-15,G.xS+15].forEach(x=>{s+=`<line class="ln thin" stroke-dasharray="3 3" x1="${f(X(x))}" y1="${f(Y(G.swBot))}" x2="${f(X(x))}" y2="${f(yb2+20)}"/>`;});
+  [G.xS-13.1,G.xS+13.1].forEach(x=>{s+=`<line class="ln thin" stroke-dasharray="3 3" x1="${f(X(x))}" y1="${f(Y(G.swTop))}" x2="${f(X(x))}" y2="${f(yb+6)}"/>`;});
+  add(11,s);
+})();
+
+/* --- Schritt 12: Beschriftung --- */
+(function(){
+  let s="";
+  // SOK-Zeichen
+  const sx=X(20), sy=Y(G.sok);
+  s+=`<polygon class="ln" points="${f(sx-7)},${f(sy-12)} ${f(sx+7)},${f(sy-12)} ${f(sx)},${f(sy-1)}"/><line class="ln" x1="${f(sx-12)}" y1="${f(sy-12)}" x2="${f(sx+12)}" y2="${f(sy-12)}"/>`+txt(sx,sy-17,"SOK","tx hw");
+  // Hinweislinien links
+  const lab=(x,y,tx,ty,t)=>`<circle class="ln" cx="${f(X(x))}" cy="${f(Y(y))}" r="2.2"/><polyline class="ln thin" points="${f(X(x))},${f(Y(y))} 112,${f(ty)} 8,${f(ty)}"/>`+txt(10,ty-5,t,"tx hw","start");
+  s+=lab(-20,46,X(G.xL)-80,Y(46)-6,"ÜKO-GTP");
+  s+=lab(-14,34,X(G.xL)-80,Y(34)+16,"Vergussbeton");
+  s+=lab(-10,14,X(G.xL)-80,Y(14)+10,"Unterbeton");
+  const labR=(x,y,tx,ty,t)=>`<circle class="ln" cx="${f(X(x))}" cy="${f(Y(y))}" r="2.2"/><polyline class="ln thin" points="${f(X(x))},${f(Y(y))} ${f(tx)},${f(ty)} ${f(tx+150)},${f(ty)}"/>`+txt(tx+2,ty-5,t,"tx hw","start");
+  s+=labR(G.xS+6,44,X(G.xR)+80,Y(48),"B 320 W60");
+  s+=labR(G.xS+22,20,X(G.xR)+80,Y(20),"kunststoffverfestigtes");
+  s+=txt(X(G.xR)+82,Y(20)+16,"Schotterbett","tx hw","start");
+  // Titel und Maßstab
+  s+=txt(12,540,"Übergang FF / Schotter, Schnitt B-B","tx title","start");
+  s+=`<line class="ln" x1="12" y1="546" x2="372" y2="546"/>`;
+  s+=txt(985,560,"M 1:10","tx title","end");
+  add(12,s);
+})();
+
+/* ===== Schritte: Texte ===== */
+const STEPS=[
+ {t:"Das ist das Ziel",
+  h:`<p>So soll eure fertige Zeichnung ungefähr aussehen: der <b>Längsschnitt B-B</b> durch den Übergang von der Festen Fahrbahn (links) auf das Schottergleis (rechts).</p>
+  <ul><li>Links: Unterbeton, Vergussbeton, ÜKO-Gleistragplatte mit Stützpunkt</li><li>Rechts: Spannbetonschwelle B 320 im kunststoffverfestigten Schotterbett</li><li>Oben drüber: die Schiene, durchgehend</li></ul>
+  <div class="paper"><span class="h">Maßstab 1:10</span>10 cm in Wirklichkeit sind 1 cm auf dem Blatt. Einfacher: <b>Die cm-Zahl aus der Wirklichkeit zeichnet ihr als mm.</b> 30 cm Unterbeton = 30 mm auf dem Blatt.</div>
+  <p class="tip">Klickt auf „Weiter“. In jedem Schritt kommt ein Teil dazu. Das Neue ist <b style="color:#D2461F">rot</b>.</p>`},
+ {t:"Skizze: fehlende Maße berechnen",
+  h:`<p>Bevor ihr zeichnet: Skizze machen und alle Höhen ausrechnen. Ausgangswerte vom Arbeitsauftrag und aus Schnitt A-A:</p>
+  <table class="calc"><tr><th>Bauteil</th><th>Rechnung / Quelle</th><th>Maß</th></tr>
+  <tr><td>Unterbeton</td><td>Angabe</td><td>30 cm</td></tr>
+  <tr><td>Vergussbeton</td><td>Angabe</td><td>8 cm</td></tr>
+  <tr><td>Gleistragplatte</td><td>Schnitt A-A: 160 mm</td><td>16 cm</td></tr>
+  <tr><td>UK Platte bis SOK</td><td>Schnitt A-A: 388 mm</td><td>38,8 cm</td></tr>
+  <tr><td>Schiene UIC 60</td><td>h = 172 mm</td><td>17,2 cm</td></tr>
+  <tr><td>Stützpunkt</td><td>38,8 − 16 − 17,2</td><td><b>5,6 cm</b></td></tr>
+  <tr><td>Schwelle B 320</td><td>Höhe in Auflagermitte 217 mm</td><td>21,7 cm</td></tr>
+  <tr><td>Gesamthöhe</td><td>30 + 8 + 38,8</td><td><b>76,8 cm</b></td></tr></table>
+  <div class="paper"><span class="h">Kontrolle</span>Schwelle + Schiene = 21,7 + 17,2 = 38,9 cm. Das ist fast genau gleich wie die 38,8 cm links. Die Schwelle steht also ungefähr auf Höhe der Plattenunterkante. Passt!</div>
+  <p class="tip">Schwellenbreite (unten 30 cm, oben 26,2 cm) aus der Schwellenbroschüre B 320.</p>`},
+ {t:"Bezugslinien und Achsen",
+  h:`<p>Zuerst dünne Hilfslinien. Daran hängt später alles.</p>
+  <ul><li><b>OK Unterbau</b> als waagerechte Linie unten</li><li><b>Stützpunktachse</b> und <b>Schwellenachse</b> als Strichpunktlinie, Abstand ca. 60 cm</li><li>links und rechts die <b>Bruchkanten</b> (Zeichnung hört dort auf)</li></ul>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Achsabstand Stützpunkt bis Schwelle: <b>60 mm</b>. Die Bruchkanten liegen im Erwartungshorizont etwa 30 mm links vom Stützpunkt und 30 mm rechts von der Schwelle.</div>
+  <p class="tip">Plant Platz ein: links und oben für Maßketten, rechts für die Beschriftung.</p>`},
+ {t:"Unterbeton",
+  h:`<p>Auf OK Unterbau zeichnet ihr den <b>Unterbeton</b>, 30 cm hoch. Er reicht von der linken Bruchkante bis zum Ende der Festen Fahrbahn.</p>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Höhe <b>30 mm</b>. Das Ende der Festen Fahrbahn liegt im Erwartungshorizont etwa 30 mm rechts von der Stützpunktachse.</div>`},
+ {t:"Vergussbeton",
+  h:`<p>Auf den Unterbeton kommt der <b>Vergussbeton</b>, 8 cm. Er liegt unter der Gleistragplatte und gleicht die Höhe aus.</p>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Höhe <b>8 mm</b>, Oberkante also bei 38 mm über OK Unterbau.</div>`},
+ {t:"ÜKO-Gleistragplatte",
+  h:`<p>Jetzt die <b>Gleistragplatte</b> (Sondergleistragplatte System ÖBB-PORR), 16 cm dick, genau so lang wie Unterbeton und Vergussbeton.</p>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Höhe <b>16 mm</b>, Oberkante bei 54 mm.</div>`},
+ {t:"Stützpunkt",
+  h:`<p>Auf der Platte sitzt der <b>Stützpunkt</b> mit der Schienenbefestigung, mittig auf der Stützpunktachse. Höhe aus eurer Rechnung: <b>5,6 cm</b>.</p>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Höhe <b>5,6 mm</b>. Die Breite ist nicht vorgegeben, im Erwartungshorizont etwa 15 bis 17 mm.</div>
+  <p class="tip">Die Zwischenlage unter der Schiene dürft ihr laut Arbeitsauftrag weglassen.</p>`},
+ {t:"Schwelle B 320",
+  h:`<p>Die <b>Spannbetonschwelle B 320</b> ist im Längsschnitt ein Trapez, mittig auf der Schwellenachse.</p>
+  <ul><li>unten 30 cm breit, oben 26,2 cm (je Seite 1,9 cm schmaler)</li><li>21,7 cm hoch</li><li>Oberkante auf gleicher Höhe wie Unterkante Schiene</li></ul>
+  <div class="paper"><span class="h">Auf dem Blatt</span>unten <b>30 mm</b>, oben <b>26,2 mm</b>, Höhe <b>21,7 mm</b>. Von der Achse aus: unten je 15 mm, oben je 13,1 mm nach links und rechts.</div>`},
+ {t:"Schiene",
+  h:`<p>Die <b>Schiene UIC 60</b> läuft über die ganze Zeichnung durch. Im Längsschnitt seht ihr sie von der Seite als Band.</p>
+  <ul><li>Unterkante auf Stützpunkt und Schwelle</li><li>Oberkante = <b>SOK</b>, kräftig zeichnen</li><li>Kopf und Fuß mit dünnen Linien andeuten</li></ul>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Höhe <b>17,2 mm</b>. SOK liegt dann 76,8 mm über OK Unterbau.</div>`},
+ {t:"Schotterbett",
+  h:`<p>Rechts vom Ende der Festen Fahrbahn kommt das <b>kunststoffverfestigte Schotterbett</b>. Es reicht von OK Unterbau bis knapp unter die Schwellenoberkante und umschließt die Schwelle.</p>
+  <div class="paper"><span class="h">Auf dem Blatt</span>Schotteroberkante <b>2,7 mm</b> unter Schwellenoberkante (Erwartungshorizont). Die Schwelle steckt also 19 mm tief im Schotter.</div>
+  <p class="tip">Die Schotteroberfläche zeichnet ihr leicht wellig, so erkennt man das lose Material.</p>`},
+ {t:"Schraffuren",
+  h:`<p>Jetzt alle <b>geschnittenen Bauteile</b> schraffieren. Wählt für jedes Material eine eigene, sinnvolle Schraffur, z. B. wie im Erwartungshorizont:</p>
+  <ul><li><b>Gleistragplatte und Schwelle</b> (Stahl-/Spannbeton): schräge Linien, abwechselnd voll und gestrichelt</li><li><b>Vergussbeton</b>: enge gestrichelte Schräglinien</li><li><b>Unterbeton</b>: gestrichelte Schräglinien in die andere Richtung</li><li><b>Schotterbett</b>: senkrechte Linien mit kleinen Rauten</li></ul>
+  <p class="tip">Schiene und Stützpunkt sind nicht schraffiert, weil sie hier in Ansicht und nicht geschnitten dargestellt sind.</p>`},
+ {t:"Bemaßung",
+  h:`<p>Maße in <b>cm</b> eintragen (die Zeichnung ist 1:10, die Zahlen sind die Wirklichkeit!).</p>
+  <ul><li>oben: Maßkette 65 / ca. 60 / 60 auf die Achsen</li><li>links: 30 / 8 / 16 / 5,6 / 17,2 und das Gesamtmaß 38,8</li><li>rechts: 17,2 / 2,7 / 19 und Schwellenhöhe 21,7</li><li>unten: Schwellenbreite 1,9 / 26,2 / 1,9 und 30</li></ul>
+  <p class="tip">Maßzahlen stehen über der Maßlinie und sind von unten oder von rechts lesbar. Hochzahlen wie 17² sind die Millimeter: 17² = 17,2 cm.</p>`},
+ {t:"Beschriftung, Titel, Maßstab",
+  h:`<p>Zum Schluss beschriften:</p>
+  <ul><li>Bauteile mit Hinweislinie und Punkt: ÜKO-GTP, Vergussbeton, Unterbeton, B 320 W60, kunststoffverfestigtes Schotterbett</li><li>Höhenzeichen <b>SOK</b></li><li>Überschrift „Übergang FF / Schotter, Schnitt B-B“</li><li>Maßstab <b>M 1:10</b></li><li>Schriftfeld: Name, Klasse, Datum</li></ul>`},
+ {t:"Checkliste vor der Abgabe",
+  h:`<p>Die Zeichnung wird bewertet: <b>Vollständigkeit, Genauigkeit, Sauberkeit</b>. Prüft selbst:</p>
+  <ul><li>Sind alle Bauteile da (Unterbeton, Verguss, Platte, Stützpunkt, Schwelle, Schiene, Schotter)?</li><li>Stimmen die Höhen (Lineal anlegen!)? SOK links und rechts gleich hoch?</li><li>Jedes Material eigene Schraffur?</li><li>Achsen als Strichpunktlinie?</li><li>Alle Maße eingetragen, Maßzahlen lesbar?</li><li>Beschriftung, Titel, Maßstab, Name?</li><li>Hilfslinien dünn oder wegradiert, Linien sauber?</li></ul>
+  <p class="tip">Fertig? Dann gebt die Zeichnung ab.</p>`}
+];
+const STEP_SHOW=[null,null,2,3,4,5,6,7,8,9,10,11,12,null]; // welcher Zeichenschritt ist neu
+let cur=0;
+const svg=document.getElementById('svg'), panel=document.getElementById('panel');
+svg.innerHTML=parts.map((p,i)=>`<g class="st" data-s="${p.step}">${p.svg}</g>`).join("");
+function show(){
+  const s=STEPS[cur];
+  const newStep=STEP_SHOW[cur];
+  svg.querySelectorAll('.st').forEach(g=>{
+    const n=+g.dataset.s;
+    g.classList.remove('old','new');
+    if(cur===0||cur===STEPS.length-1) g.classList.add('old');
+    else if(newStep!==null && n<newStep) g.classList.add('old');
+    else if(newStep!==null && n===newStep) g.classList.add('new');
+    else if(newStep===null && cur===1){}
+  });
+  panel.innerHTML=`<p class="stepno">Schritt ${cur} von ${STEPS.length-1}</p><h2>${s.t}</h2>${s.h}
+   <div class="nav"><button id="prev" ${cur===0?"disabled":""}>← Zurück</button><button id="next" class="primary" ${cur===STEPS.length-1?"disabled":""}>Weiter →</button></div>
+   <div class="dots">${STEPS.map((_,i)=>`<button data-i="${i}" class="${i<cur?'done':i===cur?'now':''}" title="${STEPS[i].t}">${i}</button>`).join("")}</div>`;
+  document.getElementById('prev').onclick=()=>{if(cur>0){cur--;show();}};
+  document.getElementById('next').onclick=()=>{if(cur<STEPS.length-1){cur++;show();}};
+  panel.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;show();});
+}
+document.addEventListener('keydown',e=>{if(e.key==="ArrowRight"&&cur<STEPS.length-1){cur++;show();} if(e.key==="ArrowLeft"&&cur>0){cur--;show();}});
+show();
+</script>
+</body></html>
