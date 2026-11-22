@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LF 16 Wiederholung: Reinigung von Kanälen</title>
+<style>
+:root{--bg:#ECEAE4;--paper:#fff;--ink:#222;--muted:#666;--line:#CFCBC2;--acc:#D2461F;--hl:#FFF1D6;--ok:#2E6F48;--bad:#B3261E}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:1.45}
+header{padding:14px 16px 4px;max-width:820px;margin:0 auto}
+header h1{font-size:20px;margin:0}
+header .sub{font-size:14px;color:var(--muted)}
+.bar{display:flex;gap:4px;flex-wrap:wrap;margin:10px 0 0}
+.bar button{width:34px;height:34px;border:1px solid var(--line);background:#F4F2EC;border-radius:4px;font:inherit;font-size:14px;cursor:pointer}
+.bar button.now{background:var(--acc);color:#fff;border-color:var(--acc)}
+.bar button.done{background:#555;color:#fff;border-color:#555}
+main{max-width:820px;margin:0 auto;padding:8px 16px 30px}
+.card{background:var(--paper);border:1px solid #bbb;padding:16px 18px;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.no{font-size:13px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:var(--acc);margin:0 0 4px}
+h2{font-size:21px;margin:0 0 8px}
+.task{background:var(--hl);border-left:5px solid #E2A23B;padding:8px 12px;margin:8px 0 12px}
+.opt{display:block;width:100%;text-align:left;font:inherit;padding:10px 12px;margin:6px 0;border:2px solid var(--line);background:#fff;border-radius:6px;cursor:pointer}
+.opt.sel{border-color:var(--ink);background:#F4F2EC}
+.opt.ok{border-color:var(--ok);background:#E7F2EA}
+.opt.bad{border-color:var(--bad);background:#FBE9E7}
+table{border-collapse:collapse;width:100%;font-size:16px}
+td,th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:middle}
+th{background:#F4F2EC}
+select{font:inherit;font-size:16px;padding:6px;max-width:100%;border:2px solid var(--line);border-radius:4px;background:#fff}
+select.ok{border-color:var(--ok);background:#E7F2EA}
+select.bad{border-color:var(--bad);background:#FBE9E7}
+.pair{display:flex;gap:6px;margin:4px 0}
+.pair button{flex:1;font:inherit;font-size:15px;padding:8px;border:2px solid var(--line);background:#fff;border-radius:6px;cursor:pointer}
+.pair button.sel{border-color:var(--ink);background:#F4F2EC;font-weight:bold}
+.pair button.ok{border-color:var(--ok);background:#E7F2EA}
+.pair button.bad{border-color:var(--bad);background:#FBE9E7}
+.st{margin:10px 0 2px;font-weight:bold}
+.ord{list-style:none;padding:0;margin:0}
+.ord li{display:flex;align-items:center;gap:8px;border:2px solid var(--line);background:#fff;border-radius:6px;padding:8px;margin:6px 0}
+.ord li.ok{border-color:var(--ok);background:#E7F2EA}
+.ord li.bad{border-color:var(--bad);background:#FBE9E7}
+.ord .t{flex:1}
+.ord button{font:inherit;width:40px;height:36px;border:1px solid #999;background:#F4F2EC;border-radius:4px;cursor:pointer}
+.nav{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.nav button{flex:1;min-width:120px;font:inherit;font-weight:bold;padding:12px;border:2px solid var(--ink);background:#fff;border-radius:6px;cursor:pointer}
+.nav button.primary{background:var(--ink);color:#fff}
+.fb{margin-top:12px;padding:10px 12px;border-radius:6px;display:none}
+.fb.show{display:block}
+.fb.good{background:#E7F2EA;border:1px solid var(--ok)}
+.fb.mid{background:var(--hl);border:1px solid #E2A23B}
+.gap select{margin:2px 0}
+.big{font-size:42px;font-weight:bold;margin:6px 0}
+.small{font-size:14px;color:var(--muted)}
+</style></head>
+<body>
+<header>
+  <h1>LF 16 Wiederholung: Reinigung von Kanälen</h1>
+  <div class="sub">Spülverfahren und mechanische Reinigung · 7 Stationen · Erst lösen, dann „Prüfen“ drücken</div>
+  <div class="bar" id="bar"></div>
+</header>
+<main><div class="card" id="card"></div></main>
+<script>
+const S=[];let cur=0;const score={};
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+const el=(h)=>{const d=document.createElement('div');d.innerHTML=h;return d.firstElementChild}
+
+/* 1 Multi-select */
+S.push({title:'Warum reinigen?',task:'Warum muss ein Kanal vor der Sanierung gereinigt werden? Wählen Sie die <b>drei</b> richtigen Gründe.',
+render(c){this.opts=shuffle([
+ ['Damit bei der TV-Inspektion alle Schäden sichtbar sind.',1],
+ ['Hindernisse wie Wurzeln oder Betonreste verhindern den Einbau von Liner oder Roboter.',1],
+ ['Das Sanierungsmaterial braucht einen sauberen Untergrund, damit es haftet.',1],
+ ['Damit der Kanal danach nicht mehr saniert werden muss.',0],
+ ['Weil die Reinigung das Rohr stabiler macht.',0],
+ ['Damit das Abwasser schneller abfließt und man keine Inspektion mehr braucht.',0]]);
+ this.opts.forEach((o,i)=>{const b=el(`<button class="opt">${o[0]}</button>`);b.onclick=()=>b.classList.toggle('sel');b.dataset.r=o[1];c.appendChild(b)})},
+check(c){let p=0;c.querySelectorAll('.opt').forEach(b=>{const s=b.classList.contains('sel'),r=b.dataset.r=='1';b.classList.remove('ok','bad');if(r)b.classList.add('ok');else if(s)b.classList.add('bad');if(s&&r)p++;if(s&&!r)p--});return [Math.max(0,p),3,'Auch richtig wäre: Der volle Abflussquerschnitt wird wiederhergestellt.']}});
+
+/* 2 Stau oder HD */
+S.push({title:'Stauspülung oder Hochdruckspülung?',task:'Zu welchem Verfahren passt die Aussage? Tippen Sie auf das richtige Verfahren.',
+render(c){this.items=shuffle([
+ ['Der Druck entsteht durch angestautes Wasser hinter einem Spülkörper.','S'],
+ ['Spülfahrzeug: 10 bis 15 MPa, am Spülkopf noch 8 bis 10 MPa.','H'],
+ ['Geringster Aufwand, billigstes Verfahren.','S'],
+ ['Löst auch verfestigte Ablagerungen.','H'],
+ ['Geht nicht bei geringem Gefälle und in vermaschten Netzen.','S'],
+ ['Start im tieferen Schacht, entgegen der Fließrichtung.','H'],
+ ['Spülkugel, Spülschild oder Spülschraube an Kette oder Seil.','S'],
+ ['Düsen axial, radial und schräg nach hinten.','H']]);
+ this.items.forEach(it=>{const d=el(`<div><div class="st">${it[0]}</div><div class="pair"><button data-v="S">Stauspülung</button><button data-v="H">Hochdruckspülung</button></div></div>`);d.dataset.r=it[1];d.querySelectorAll('button').forEach(b=>b.onclick=()=>{d.querySelectorAll('button').forEach(x=>x.classList.remove('sel'));b.classList.add('sel')});c.appendChild(d)})},
+check(c){let p=0;c.querySelectorAll('.pair').forEach(pr=>{const r=pr.parentElement.dataset.r;pr.querySelectorAll('button').forEach(b=>{b.classList.remove('ok','bad');if(b.classList.contains('sel'))b.classList.add(b.dataset.v==r?'ok':'bad')});const s=pr.querySelector('.sel');if(s&&s.dataset.v==r)p++});return [p,8,'']}});
+
+/* 3 Düsen */
+S.push({title:'Die Düsen am HD-Spülkopf',task:'Welche Aufgabe hat welche Düse? Wählen Sie aus.',
+render(c){const a=['lösen Ablagerungen und Verstopfungen im Rohrquerschnitt','halten den Spülkopf mittig und lösen seitliche Ablagerungen','bewegen den Spülkopf nach vorn und spülen das Spülgut zum Startschacht'];
+ this.rows=[['axial (nach vorn)',0],['radial (zur Seite, z. T. rotierend)',1],['schräg nach hinten',2]];
+ const t=el('<table><tr><th>Düse</th><th>Aufgabe</th></tr></table>');
+ this.rows.forEach(r=>{const tr=el(`<table><tr><td>${r[0]}</td><td></td></tr></table>`).querySelector('tr');const s=document.createElement('select');s.innerHTML='<option value="">bitte wählen</option>'+a.map((x,i)=>`<option value="${i}">${x}</option>`).join('');s.dataset.r=r[1];tr.children[1].appendChild(s);t.querySelector('tbody').appendChild(tr)});c.appendChild(t)},
+check(c){let p=0;c.querySelectorAll('select').forEach(s=>{s.classList.remove('ok','bad');s.classList.add(s.value==s.dataset.r?'ok':'bad');if(s.value==s.dataset.r)p++});return [p,3,'']}});
+
+/* 4 Haltungen */
+S.push({title:'Welches Verfahren für welche Haltung?',task:'Der Polier schickt Ihnen vier Haltungen. Das Wasser fließt immer vom höheren zum tieferen Schacht. Wählen Sie das Verfahren und den Startschacht.',
+render(c){this.h=[
+ ['H1: Regenwasser DN 400, Schacht S1 (höher) → S2. Sand und Laub, locker. Gefälle ausreichend, Netz nicht vermascht.','S','S1'],
+ ['H2: Schmutzwasser DN 250, S3 (höher) → S4. Ablagerungen verfestigt, Netz vermascht.','H','S4'],
+ ['H3: Mischwasser DN 300, S5 (höher) → S6. Ablagerungen locker, aber Gefälle sehr gering.','H','S6'],
+ ['H4: Mischwasser DN 300, S7 (höher) → S8. Wurzeleinwuchs an einer Muffe. Hochdruckspülung blieb ohne Erfolg.','M','-']];
+ const proc='<option value="">Verfahren?</option><option value="S">Stauspülung</option><option value="H">Hochdruckspülung</option><option value="M">mechanische Reinigung (Fräsroboter)</option>';
+ this.h.forEach((h,i)=>{const sch=h[2]=='-'?['-']:[h[0].match(/S\d/g)[0],h[0].match(/S\d/g)[1]];const opts='<option value="">Start?</option>'+(h[2]=='-'?'<option value="-">nicht nötig</option>':'')+[h[0].match(/S\d/g)[0],h[0].match(/S\d/g)[1]].map(s=>`<option value="${s}">${s}</option>`).join('');
+  const d=el(`<div><div class="st">${h[0]}</div><div class="gap"><select class="p">${proc}</select> <select class="s">${opts}</select></div></div>`);d.dataset.p=h[1];d.dataset.s=h[2];c.appendChild(d)})},
+check(c){let p=0;c.querySelectorAll('.gap').forEach(g=>{const d=g.parentElement;const a=g.querySelector('.p'),b=g.querySelector('.s');[a,b].forEach(x=>x.classList.remove('ok','bad'));const okp=a.value==d.dataset.p;a.classList.add(okp?'ok':'bad');if(okp)p++;
+  const oks=d.dataset.s=='-'?true:b.value==d.dataset.s;if(d.dataset.s!='-'){b.classList.add(oks?'ok':'bad');if(oks)p++}else{b.classList.add('ok');}});
+ return [p,7,'Stauspülung: Spülkörper am <b>oberen</b> Ende einsetzen. Hochdruckspülung: Start im <b>tieferen</b> Schacht, gegen die Fließrichtung. Erst wenn Spülen nichts bringt, wird mechanisch gereinigt.']}});
+
+/* 5 Mechanisch */
+S.push({title:'Mechanische Reinigung',task:'Welches Verfahren passt zum Schadensbild?',
+render(c){const v=['HD-Spülung','Spirale','Kettenschleuder','Fräsroboter','Molchen'];
+ this.r=[['Wurzeleinwuchs an einer Muffe, Hauptkanal DN 300',[3]],['verstopfte Grundleitung DN 100 im Keller',[1]],['Sand und Schlamm auf der Sohle, Kanal DN 400',[0]],['Ablagerungen in einer Abwasserdruckleitung',[4]],['Anschlussstutzen ragt 5 cm in den Kanal',[3]],['harte Inkrustationen an der Rohrwand, DN 200',[2,3]]];
+ const t=el('<table><tr><th>Schadensbild</th><th>Verfahren</th></tr></table>');
+ this.r.forEach(r=>{const tr=el(`<table><tr><td>${r[0]}</td><td></td></tr></table>`).querySelector('tr');const s=document.createElement('select');s.innerHTML='<option value="">wählen</option>'+v.map((x,i)=>`<option value="${i}">${x}</option>`).join('');s.dataset.r=r[1].join(',');tr.children[1].appendChild(s);t.querySelector('tbody').appendChild(tr)});c.appendChild(t)},
+check(c){let p=0;c.querySelectorAll('select').forEach(s=>{const ok=s.value!==''&&s.dataset.r.split(',').includes(s.value);s.classList.remove('ok','bad');s.classList.add(ok?'ok':'bad');if(ok)p++});return [p,6,'Bei harten Inkrustationen geht die Kettenschleuder, je nach Fall auch der Fräsroboter.']}});
+
+/* 6 Reihenfolge HD */
+S.push({title:'Ablauf der Hochdruckspülung',task:'Bringen Sie die Arbeitsschritte mit den Pfeilen in die richtige Reihenfolge (oben = zuerst).',
+render(c){this.correct=['Der Spülkopf wird im tiefer liegenden Schacht eingesetzt.','Der nächsttiefere Leitungsabschnitt wird mit einer Blase dicht verschlossen.','Der Arbeiter verlässt den Schacht.','Der Hochdruck wird aufgebracht.','Die Düsen lösen die Ablagerungen, die hinteren Düsen spülen sie zum Startschacht.','Eine Vakuumpumpe saugt das Schmutzwasser ab, es wird fachgerecht entsorgt.'];
+ const ul=el('<ul class="ord"></ul>');shuffle(this.correct).forEach(t=>ul.appendChild(this.li(t,ul)));c.appendChild(ul)},
+li(t,ul){const li=el(`<li><span class="t">${t}</span><button aria-label="hoch">▲</button><button aria-label="runter">▼</button></li>`);const [u,d]=li.querySelectorAll('button');u.onclick=()=>{if(li.previousElementSibling)ul.insertBefore(li,li.previousElementSibling)};d.onclick=()=>{if(li.nextElementSibling)ul.insertBefore(li.nextElementSibling,li)};return li},
+check(c){let p=0;[...c.querySelectorAll('.ord li')].forEach((li,i)=>{li.classList.remove('ok','bad');const t=li.querySelector('.t').textContent;let ok=t==this.correct[i];if((i==0||i==1)&&(t==this.correct[0]||t==this.correct[1]))ok=true;li.classList.add(ok?'ok':'bad');if(ok)p++});return [p,6,'Schritt 1 und 2 dürfen getauscht werden. Beides muss erledigt sein, bevor der Arbeiter den Schacht verlässt.']}});
+
+/* 7 Lückentext */
+S.push({title:'Merksätze und Sanierungsablauf',task:'Wählen Sie das passende Wort.',
+render(c){const g=(r,o)=>`<select data-r="${r}"><option value="">...</option>${shuffle(o).map(x=>`<option>${x}</option>`).join('')}</select>`;
+ c.appendChild(el(`<div class="gap">
+ <p>Spülverfahren haben Vorrang, weil sie die Rohrinnenoberfläche kaum ${g('beschädigen',['beschädigen','reinigen','abdichten'])}.</p>
+ <p>Mechanische Verfahren setzt man erst ein, wenn ${g('Spülen',['Spülen','Fräsen','Inspizieren'])} ohne Erfolg bleibt.</p>
+ <p>Das Werkzeug muss zur Ablagerung und zum ${g('Rohrwerkstoff',['Rohrwerkstoff','Wetter','Schachtdeckel'])} passen, sonst wird die Rohrwand beschädigt.</p>
+ <p>Ablauf auf der Baustelle: 1. Reinigung → 2. ${g('Inspektion',['Inspektion','Sanierung','Erfolgskontrolle'])} → 3. Auswahl des Verfahrens → 4. ${g('Sanierung',['Sanierung','Inspektion','Reinigung'])} → 5. ${g('Erfolgskontrolle',['Erfolgskontrolle','Reinigung','Spülung'])}</p>
+ </div>`))},
+check(c){let p=0;c.querySelectorAll('select').forEach(s=>{const ok=s.value==s.dataset.r;s.classList.remove('ok','bad');s.classList.add(ok?'ok':'bad');if(ok)p++});return [p,6,'Nach der Reinigung kommt heute der nächste Schritt: die <b>Inspektion</b>.']}});
+
+function bar(){const b=document.getElementById('bar');b.innerHTML='';S.forEach((s,i)=>{const x=document.createElement('button');x.textContent=i+1;if(i==cur)x.className='now';else if(score[i])x.className='done';x.onclick=()=>show(i);b.appendChild(x)});const e=document.createElement('button');e.textContent='∑';if(cur==S.length)e.className='now';e.onclick=()=>show(S.length);b.appendChild(e)}
+function show(i){cur=i;bar();const c=document.getElementById('card');c.innerHTML='';
+ if(i==S.length){let p=0,m=0;S.forEach((s,k)=>{m+=s.max||0;if(score[k]){p+=score[k][0]}});const tot=S.reduce((a,s,k)=>a+(score[k]?score[k][1]:0),0);
+  c.innerHTML=`<p class="no">Ergebnis</p><h2>Geschafft!</h2><div class="big">${p} / ${tot||'–'}</div><p class="small">Punkte aus den Stationen, die Sie geprüft haben (${Object.keys(score).length} von ${S.length}).</p>
+  <table>${S.map((s,k)=>`<tr><td>${k+1}. ${s.title}</td><td>${score[k]?score[k][0]+' / '+score[k][1]:'nicht geprüft'}</td></tr>`).join('')}</table>
+  <p>Zeigen Sie das Ergebnis Ihrer Lehrkraft. Was noch rot war: im Hefter beim Tafelbild nachlesen.</p>
+  <div class="nav"><button onclick="location.reload()">Neu starten</button></div>`;return}
+ const s=S[i];c.appendChild(el(`<p class="no">Station ${i+1} von ${S.length}</p>`));c.appendChild(el(`<h2>${s.title}</h2>`));c.appendChild(el(`<div class="task">${s.task}</div>`));
+ const body=document.createElement('div');c.appendChild(body);s.render(body);
+ const fb=el('<div class="fb"></div>');
+ const nav=el(`<div class="nav"><button ${i==0?'disabled':''}>← Zurück</button><button class="primary">Prüfen</button><button>Weiter →</button></div>`);
+ const [bk,ck,nx]=nav.querySelectorAll('button');bk.onclick=()=>show(i-1);nx.onclick=()=>show(i+1);
+ ck.onclick=()=>{const [p,m,t]=s.check(body);score[i]=[p,m];fb.className='fb show '+(p==m?'good':'mid');fb.innerHTML=(p==m?'<b>Alles richtig!</b> ':`<b>${p} von ${m} richtig.</b> Grün ist richtig, rot noch nicht. `)+(t?'<br>'+t:'');bar()};
+ c.appendChild(nav);c.appendChild(fb)}
+show(0);
+document.addEventListener('keydown',e=>{if(e.target.tagName=='SELECT')return;if(e.key=='ArrowRight'&&cur<S.length)show(cur+1);if(e.key=='ArrowLeft'&&cur>0)show(cur-1)});
+</script>
+</body></html>
