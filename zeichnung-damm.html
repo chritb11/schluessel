@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zeichnung Hochwasserdamm (M 1:100)</title>
+<style>
+:root{
+  --bg:#ECEAE4; --paper:#FFFFFF; --ink:#222; --muted:#666; --line:#CFCBC2;
+  --new:#D2461F; --hl:#FFF1D6; --ok:#2E6F48;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Arial, Helvetica, sans-serif;font-size:17px;line-height:1.45}
+.top{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 20px 6px}
+.top h1{font-size:20px;margin:0}
+.top .sub{font-size:14px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(300px,1fr);gap:16px;padding:8px 20px 20px;align-items:start}
+@media (max-width:900px){.layout{grid-template-columns:1fr}}
+.sheet{background:var(--paper);border:1px solid #bbb;box-shadow:0 2px 6px rgba(0,0,0,.12);padding:8px}
+.sheet svg{display:block;width:100%;height:auto}
+.panel{background:var(--paper);border:1px solid #bbb;padding:16px 18px}
+.stepno{font-size:13px;font-weight:bold;letter-spacing:.06em;text-transform:uppercase;color:var(--new);margin:0 0 4px}
+.panel h2{font-size:22px;margin:0 0 10px}
+.panel p{margin:0 0 10px}
+.panel ul,.panel ol{margin:0 0 10px;padding-left:22px}
+.panel li{margin-bottom:4px}
+.paper{background:var(--hl);border-left:5px solid #E2A23B;padding:8px 12px;margin:10px 0}
+.paper .h{display:block;font-weight:bold;margin-bottom:2px}
+.tip{font-size:15px;color:#444;border-top:1px dashed var(--line);padding-top:8px;margin-top:8px}
+table.calc{border-collapse:collapse;width:100%;font-size:15px;margin:6px 0 10px}
+table.calc td,table.calc th{border:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+table.calc th{background:#F4F2EC}
+.nav{display:flex;gap:8px;margin-top:14px}
+.nav button{flex:1;font:inherit;font-weight:bold;font-size:17px;padding:12px;border:2px solid var(--ink);background:var(--paper);cursor:pointer;border-radius:6px;color:var(--ink)}
+.nav button.primary{background:var(--ink);color:#fff}
+.nav button[disabled]{opacity:.35;cursor:default}
+.dots{display:flex;flex-wrap:wrap;gap:4px;margin-top:12px}
+.dots button{width:30px;height:30px;font:inherit;font-size:13px;border:1px solid var(--line);background:#F4F2EC;cursor:pointer;border-radius:4px;padding:0}
+.dots button.done{background:#555;color:#fff;border-color:#555}
+.dots button.now{background:var(--new);color:#fff;border-color:var(--new)}
+.legend{font-size:13px;color:var(--muted);margin-top:8px}
+.legend span{display:inline-block;width:22px;height:4px;vertical-align:middle;margin:0 4px 0 10px}
+/* SVG (Einheit: mm auf dem Blatt) */
+.st{display:none}
+.st.old,.st.new{display:inline}
+.st.old .ln,.st.old .hl{stroke:#222}
+.st.new .ln,.st.new .hl{stroke:var(--new)}
+.st.old .tx{fill:#222}
+.st.new .tx{fill:var(--new)}
+.st.old .fl{fill:#222}
+.st.new .fl{fill:var(--new)}
+.st.old .ax{stroke:#555}
+.st.new .ax{stroke:var(--new)}
+.st.new .green{fill:#7DBB6A;fill-opacity:.55}
+.st.old .green{fill:#7DBB6A;fill-opacity:.45}
+.ln{fill:none;stroke-width:.35}
+.ln.thick{stroke-width:.7}
+.hl{fill:none;stroke-width:.18;stroke-dasharray:1.2 1}
+.ax{fill:none;stroke-width:.25;stroke-dasharray:6 1.2 1 1.2}
+.dash{stroke-dasharray:2 1.2}
+.tx{font-family:Arial, sans-serif;font-size:3.4px}
+.tx.s{font-size:2.9px}
+.tx.t{font-size:4.2px;font-weight:bold}
+.help{display:none}
+.st.new .help{display:inline}
+.frame{fill:none;stroke:#999;stroke-width:.4}
+.frametx{font-family:Arial;font-size:3px;fill:#999}
+</style></head>
+<body>
+<div class="top">
+  <h1>LF 7: Hochwasserdamm zeichnen (M 1:100)</h1>
+  <div class="sub">Schritt für Schritt zur Zeichnung · Pfeiltasten ← → zum Blättern</div>
+</div>
+<div class="layout">
+  <div class="sheet"><svg id="svg" viewBox="-30 -10 292 212" xmlns="http://www.w3.org/2000/svg" aria-label="Zeichnung Hochwasserdamm"></svg>
+    <div class="legend">Farbe: <span style="background:#D2461F"></span>neu in diesem Schritt <span style="background:#222"></span>schon gezeichnet</div>
+  </div>
+  <div class="panel" id="panel"></div>
+</div>
+<script>
+/* ===== Werte der Aufgabe (m) ===== */
+const W={h:2.75, krone:1.50, n:1.5, m:8, G:196.00};
+const KR=W.G+W.h;                                   // 198,75
+const bL=(W.h+W.krone/2/W.m)/(1/W.n-1/W.m);         // 5,25  Böschungsbreite links (Gelände fällt nach links)
+const bR=(W.h-W.krone/2/W.m)/(1/W.n+1/W.m);         // 3,355 Böschungsbreite rechts (Gelände steigt nach rechts)
+const xL=-(W.krone/2+bL), xR=W.krone/2+bR;          // Fußpunkte (m ab Achse)
+const zL=KR-bL/W.n, zR=KR-bR/W.n;                   // 195,25 / 196,51
+/* ===== Blatt: mm ab Rahmenlinie, 1 m = 10 mm ===== */
+const AX=85, GY=60;                                 // Startpunkt: 8,5 cm von links, 6 cm von oben
+const X=x=>AX+x*10, Y=z=>GY-(z-W.G)*10;
+const f=v=>(+v).toFixed(2);
+const k2=v=>v.toFixed(2).replace('.',',');
+const parts=[];const add=(s,svg,help='')=>parts.push({s,svg:svg+(help?`<g class="help">${help}</g>`:'')});
+const L=(x1,y1,x2,y2,c="ln")=>`<line class="${c}" x1="${f(x1)}" y1="${f(y1)}" x2="${f(x2)}" y2="${f(y2)}"/>`;
+const T=(x,y,t,c="tx",a="middle",r=0)=>`<text class="${c}" x="${f(x)}" y="${f(y)}" text-anchor="${a}" ${r?`transform="rotate(${r} ${f(x)} ${f(y)})"`:""}>${t}</text>`;
+const tick=(x,y)=>L(x-1.2,y+1.2,x+1.2,y-1.2,"ln");
+const kote=(x,y,t,a="start")=>`<polygon class="fl" points="${f(x-1.4)},${f(y-2.4)} ${f(x+1.4)},${f(y-2.4)} ${f(x)},${f(y)}"/>`+T(a=="start"?x+2:x-2,y-2.8,t,"tx s",a);
+const gZ=x=>W.G+x/W.m;                              // Gelände (m ü. NN) bei x m ab Achse
+
+/* Schritt 1: Blatt (Rahmen, Schriftfeld) */
+add(1, `<rect class="ln" x="-26" y="0" width="26" height="190"/>`+L(-13,0,-13,190)+L(-26,60,0,60)+L(-26,130,0,130)
+  +T(-6,95,"Hochwasserdamm","tx t","middle",-90)+T(-19,95,"Böschungsneigung 1:1,5","tx s","middle",-90)+T(-12,168,"1:100  m","tx","middle",-90)
+  +`<rect class="ln thick" x="0" y="0" width="250" height="190"/>`);
+
+/* Schritt 2: Startpunkt, Achse, Gelände */
+add(2, L(AX,8,AX,170,"ax")
+  + `<circle class="fl" cx="${AX}" cy="${GY}" r="0.9"/>`
+  + L(X(-8),Y(gZ(-8)),X(7),Y(gZ(7)),"ln thick"),
+  L(0,GY,AX,GY,"hl")+L(AX,0,AX,GY,"hl")
+  + T(42,GY-1.5,"8,5 cm","tx s")+T(AX+1.5,30,"6 cm","tx s","start")
+  + L(X(-1),Y(gZ(-1)),X(7),Y(gZ(-1)),"hl")+L(X(7),Y(gZ(-1)),X(7),Y(gZ(7)),"hl")+T(X(3),Y(gZ(-1))+3.6,"8 cm","tx s")+T(X(7)+1.2,Y(gZ(3))+1,"1 cm","tx s","start"));
+
+/* Schritt 3: Krone */
+add(3, L(X(-W.krone/2),Y(KR),X(W.krone/2),Y(KR),"ln thick")
+  , L(AX,GY,AX,Y(KR),"hl")+T(AX+1.5,(GY+Y(KR))/2,"2,75 cm","tx s","start"));
+
+/* Schritt 4: Böschungen */
+add(4, L(X(-W.krone/2),Y(KR),X(xL),Y(zL),"ln thick")+L(X(W.krone/2),Y(KR),X(xR),Y(zR),"ln thick"),
+  L(X(-W.krone/2),Y(KR),X(-W.krone/2-1.5*3),Y(KR),"hl")+L(X(-W.krone/2-4.5),Y(KR),X(-W.krone/2-4.5),Y(KR-3),"hl")
+  + T(X(-W.krone/2-2.25),Y(KR)-1.2,"4,5 cm","tx s")+T(X(-W.krone/2-4.5)-1,Y(KR-1.5),"3 cm","tx s","end"));
+
+/* Schritt 5: Bemaßung */
+(function(){const y1=78,y2=86,xs=[X(xL),X(-W.krone/2),X(W.krone/2),X(xR)];
+ const ys=[Y(zL),Y(KR),Y(KR),Y(zR)];let s=xs.map((x,i)=>L(x,ys[i]+1,x,(i==0||i==3?y2:y1)+2,"hl")).join("");
+ s+=L(xs[0]-2,y1,xs[3]+2,y1)+L(xs[0]-2,y2,xs[3]+2,y2)+xs.map(x=>tick(x,y1)).join("")+tick(xs[0],y2)+tick(xs[3],y2);
+ s+=T((xs[0]+xs[1])/2,y1-1,k2(bL))+T((xs[1]+xs[2])/2,y1-1,k2(W.krone))+T((xs[2]+xs[3])/2,y1-1,k2(bR))+T((xs[0]+xs[3])/2,y2-1,k2(bL+W.krone+bR));
+ const xv=14; s+=L(xv-2,Y(KR),X(-W.krone/2),Y(KR),"hl")+L(xv-2,GY,AX,GY,"hl")+L(xv,Y(KR)-2,xv,GY+2)+tick(xv,Y(KR))+tick(xv,GY)+T(xv-1.2,(Y(KR)+GY)/2,k2(W.h),"tx","middle",-90);
+ add(5,s)})();
+
+/* Schritt 6: Höhenkoten, Neigungen, Überschrift */
+add(6, kote(AX,Y(KR),k2(KR)+" m ü. NN")+kote(AX,GY,k2(W.G)+" m ü. NN")+kote(X(xL),Y(zL),k2(zL),"end")+kote(X(xR),Y(zR),k2(zR))
+  + T(X(-3.6)-1.5,Y(KR-1.7)-1.5,"1:1,5","tx","middle",-33.7)+T(X(2.7)+1.5,Y(KR-1.3)-1.6,"1:1,5","tx","middle",33.7)
+  + T(X(6.2),Y(gZ(6.2))-1.6,"1:8","tx","middle",-7.1)+T(30,18,"Querprofil","tx t","start"));
+
+/* Schritt 7: Längsprofil Umriss */
+(function(){const a=160,b=232;
+ let s=L(X(W.krone/2)+2,Y(KR),a,Y(KR),"hl")+L(X(xR)+2,Y(zR),a,Y(zR),"hl")+L(X(-1)+0,Y(zL),a,Y(zL),"hl");
+ s+=`<rect class="ln thick" x="${a}" y="${f(Y(KR))}" width="${b-a}" height="${f(Y(zL)-Y(KR))}"/>`+L(a,Y(zR),b,Y(zR),"ln dash");
+ add(7,s)})();
+/* Schritt 8: Längsprofil Böschungsstriche, Koten */
+(function(){const a=160;let s="";for(let i=1;i<=9;i++){const x=a+i*4;s+=L(x,Y(KR),x,i%2?Y(KR)+(Y(zL)-Y(KR))/2:Y(zL));}
+ s+=T(a+44,Y(KR-1.6),"1:1,5","tx","middle",-90)+kote(212,Y(KR),k2(KR))+kote(212,Y(zR),k2(zR))+kote(212,Y(zL),k2(zL))+T(160,18,"Längsprofil","tx t","start");
+ add(8,s)})();
+
+/* Schritt 9: Draufsicht Umriss */
+(function(){const t=104,u=164,xs=[X(xL),X(-W.krone/2),X(W.krone/2),X(xR)];
+ let s=xs.map(x=>L(x,90,x,t,"hl")).join("")+xs.map(x=>L(x,t,x,u,"ln thick")).join("")+L(xs[0],t,xs[3],t)+L(xs[0],u,xs[3],u);
+ add(9,s)})();
+/* Schritt 10: Draufsicht Böschungsstriche, Achse, Koten */
+(function(){const t=104,u=164;let s="";let i=0;
+ for(let y=t+5;y<u;y+=5){i++;const lang=i%2==1;
+   s+=L(X(-W.krone/2),y,lang?X(xL):X(-W.krone/2)-bL*10/2,y);
+   s+=L(X(W.krone/2),y,lang?X(xR):X(W.krone/2)+bR*10/2,y);}
+ s+=T((X(xL)+X(-W.krone/2))/2,t-1.5,"1:1,5")+T((X(W.krone/2)+X(xR))/2,t-1.5,"1:1,5")+T(AX+2.4,134,k2(KR),"tx","middle",-90)+T(30,98,"Draufsicht","tx t","start");
+ add(10,s)})();
+/* Schritt 11: Aufschüttung grün, Schriftfeld */
+add(11, `<polygon class="green" points="${f(X(xL))},${f(Y(zL))} ${f(X(-W.krone/2))},${f(Y(KR))} ${f(X(W.krone/2))},${f(Y(KR))} ${f(X(xR))},${f(Y(zR))}"/>`
+  + `<rect class="green" x="160" y="${f(Y(KR))}" width="72" height="${f(Y(zL)-Y(KR))}"/>`);
+
+const svg=document.getElementById('svg');
+svg.innerHTML=parts.map(p=>`<g class="st" data-s="${p.s}">${p.svg}</g>`).join("");
+
+const STEPS=[
+ {t:"Überblick",s:null,h:`<p>Sie zeichnen den Hochwasserdamm aus der Aufgabe im Maßstab <b>1 : 100</b> in drei Ansichten: <b>Querprofil</b>, <b>Längsprofil</b> und <b>Draufsicht</b>. Rechts sehen Sie, wie die fertige Zeichnung aussieht.</p>
+ <table class="calc"><tr><th>Vorgabe</th><th>Wert</th></tr>
+ <tr><td>Böschungshöhe in der Achse h</td><td>2,75 m</td></tr><tr><td>Kronenbreite</td><td>1,50 m</td></tr><tr><td>Böschungsneigung</td><td>1 : 1,5</td></tr>
+ <tr><td>Geländehöhe in der Achse</td><td>196,00 m ü. NN</td></tr><tr><td>Geländequerneigung</td><td>1 : 8 (steigt nach rechts)</td></tr></table>
+ <div class="paper"><span class="h">Sie brauchen</span>DIN-A4-Zeichenblatt, Bleistift (hart und weich), Geodreieck, Lineal, Taschenrechner, grünen Stift.</div>`},
+ {t:"Blatt vorbereiten",s:1,h:`<ul><li>Blatt <b>quer</b> legen, das Schriftfeld ist links (wie im Musterbeispiel).</li><li>Schriftfeld ausfüllen: Hochwasserdamm, Böschungsneigung 1:1,5, Maßstab 1:100, Name, Datum.</li></ul>
+ <div class="paper"><span class="h">Maßstab 1 : 100</span>1 m in der Wirklichkeit = <b>1 cm</b> auf dem Blatt. Sie können die Meterzahlen also direkt in cm abtragen: 2,75 m → 2,75 cm.</div>`},
+ {t:"Startpunkt, Achse und Gelände",s:2,h:`<ol><li>Startpunkt setzen: <b>8,5 cm</b> von der linken Rahmenlinie (Rand Schriftfeld) und <b>6 cm</b> von der oberen Rahmenlinie. Das ist das Gelände in der Achse (196,00 m ü. NN).</li>
+ <li>Durch den Startpunkt die <b>Dammachse</b> als Strich-Punkt-Linie senkrecht zeichnen, lang genug nach unten für die Draufsicht.</li>
+ <li><b>Geländelinie 1 : 8</b> durch den Startpunkt: 8 cm nach rechts, dabei 1 cm nach oben. Links fällt das Gelände entsprechend ab. Linie lang zeichnen (ca. 8 cm links, 6 cm rechts der Achse).</li></ol>
+ <div class="tip">Tipp: Hilfsdreieck dünn zeichnen. Es wird später nicht nachgezogen.</div>`},
+ {t:"Dammkrone",s:3,h:`<ol><li>Von Startpunkt aus <b>2,75 cm</b> senkrecht nach oben messen. Das ist die Krone: 196,00 + 2,75 = <b>198,75 m ü. NN</b>.</li>
+ <li>Die Krone ist 1,50 m breit und liegt mittig: je <b>0,75 cm</b> links und rechts der Achse. Waagerecht zeichnen.</li></ol>`},
+ {t:"Böschungen 1 : 1,5",s:4,h:`<p>1 : 1,5 heißt: auf 1 m Höhe geht die Böschung 1,5 m zur Seite.</p>
+ <ol><li>Von der linken Kronenkante z. B. <b>3 cm nach unten</b> und <b>4,5 cm nach außen</b> gehen (3 · 1,5 = 4,5). Diesen Punkt mit der Kronenkante verbinden und die Linie verlängern, <b>bis sie die Geländelinie trifft</b>. Das ist der Böschungsfuß.</li>
+ <li>Rechts genauso, nur nach rechts.</li></ol>
+ <div class="paper"><span class="h">Kontrolle</span>Links ist die Böschung <b>5,25 cm</b> breit, rechts nur <b>3,36 cm</b>. Rechts ist sie kürzer, weil das Gelände dort ansteigt.</div>
+ <div class="tip"><b>Nachrechnen (für Schnelle):</b> Links liegt der Fuß 3,50 m unter der Krone (5,25 : 1,5). Das Gelände ist dort 6,00 m von der Achse weg, also 6,00 : 8 = 0,75 m tiefer als 196,00 → 195,25. Und 198,75 − 3,50 = 195,25. Passt.</div>`},
+ {t:"Querprofil bemaßen",s:5,h:`<ol><li>Unter dem Damm eine Maßkette: <b>5,25 | 1,50 | 3,36</b> (in m, wie auf dem Muster).</li>
+ <li>Darunter das Gesamtmaß: <b>10,11</b>.</li><li>Links die Höhe in der Achse: <b>2,75</b> (von der Krone bis zum Gelände in der Achse).</li></ol>
+ <div class="tip">Maßzahlen stehen über der Maßlinie, Maßlinien haben Schrägstriche als Begrenzung, Maßhilfslinien dünn.</div>`},
+ {t:"Höhenkoten und Neigungen",s:6,h:`<table class="calc"><tr><th>Punkt</th><th>Höhe (m ü. NN)</th></tr>
+ <tr><td>Krone</td><td>198,75</td></tr><tr><td>Gelände in der Achse</td><td>196,00</td></tr><tr><td>Böschungsfuß links</td><td>195,25</td></tr><tr><td>Böschungsfuß rechts</td><td>196,51</td></tr></table>
+ <ul><li>Höhenkoten mit Dreieck ▼ eintragen.</li><li>An beide Böschungen <b>1:1,5</b> schreiben, ans Gelände <b>1:8</b>.</li><li>Überschrift <b>Querprofil</b>.</li></ul>`},
+ {t:"Längsprofil: Umriss",s:7,h:`<ol><li>Die Höhen vom Querprofil <b>waagerecht nach rechts</b> hinüberziehen (dünne Hilfslinien): Krone, Fuß rechts, Fuß links.</li>
+ <li>Rechteck zeichnen, z. B. 7 cm lang: oben die <b>Krone</b>, unten der <b>Fuß links</b> (195,25).</li>
+ <li>Der Fuß rechts (196,51) liegt hinter dem Damm, man sieht ihn nicht: <b>gestrichelte Linie</b>.</li></ol>`},
+ {t:"Längsprofil: Böschungsstriche",s:8,h:`<ul><li>Man schaut auf die linke Böschung. Im linken Teil Böschungsstriche von der Krone nach unten: abwechselnd <b>lang</b> (bis zum Fuß) und <b>kurz</b> (etwa halb), Abstand ca. 4 bis 5 mm.</li>
+ <li><b>1:1,5</b> dazuschreiben, Höhenkoten 198,75, 196,51 und 195,25 eintragen.</li><li>Überschrift <b>Längsprofil</b>.</li></ul>`},
+ {t:"Draufsicht: Umriss",s:9,h:`<ol><li>Vom Querprofil die vier Punkte <b>senkrecht nach unten</b> loten: Fuß links, Kronenkante links, Kronenkante rechts, Fuß rechts.</li>
+ <li>Die Draufsicht unter das Querprofil zeichnen, z. B. 6 cm lang. Oben und unten mit einer Linie abschließen.</li></ol>
+ <div class="paper"><span class="h">Kontrolle</span>Breite der Draufsicht = 10,11 cm, Krone = 1,5 cm. Die Achse läuft mitten durch die Krone.</div>`},
+ {t:"Draufsicht: Böschungsstriche",s:10,h:`<ul><li>Böschungsstriche <b>beginnen immer an der Böschungsoberkante</b> (Kronenkante) und zeigen nach unten zum Fuß.</li>
+ <li>Abwechselnd <b>lang</b> (bis zum Fuß) und <b>kurz</b> (etwa halb), Abstand 5 mm, auf beiden Seiten.</li>
+ <li>Auf jede Böschung <b>1:1,5</b>, in die Krone die Höhe <b>198,75</b>. Die Achse als Strich-Punkt-Linie durchziehen.</li><li>Überschrift <b>Draufsicht</b>.</li></ul>`},
+ {t:"Aufschüttung und Kontrolle",s:11,h:`<ul><li>Aufschüttfläche im Querprofil und im Längsprofil <b>grün</b> anlegen.</li><li>Hilfslinien dünn lassen oder vorsichtig wegradieren, Körperkanten kräftig nachziehen.</li></ul>
+ <div class="paper"><span class="h">Checkliste (so wird bewertet)</span>
+ ☐ Maße und Maßstab 1:100 im Querprofil (Krone, Höhe, Breite unten)<br>☐ Böschung 1:1,5 richtig konstruiert und angegeben<br>☐ Längsprofil<br>☐ Draufsicht mit Böschungsstrichen und Achse<br>☐ Bemaßung vollständig<br>☐ Höhenkoten 196,00 und 198,75<br>☐ sauber, beschriftet, Schriftfeld</div>`},
+ {t:"Fertig",s:null,h:`<p>Vergleichen Sie Ihre Zeichnung mit dem Bild. Stimmen <b>5,25 | 1,50 | 3,36</b> und <b>10,11</b>?</p><p>Dann abgeben.</p>`}
+];
+const STEP_SHOW=STEPS.map(s=>s.s);
+let cur=0;const panel=document.getElementById('panel');
+function show(){
+  const s=STEPS[cur];const ns=STEP_SHOW[cur];
+  svg.querySelectorAll('.st').forEach(g=>{const n=+g.dataset.s;g.classList.remove('old','new');
+    if(cur===0||cur===STEPS.length-1) g.classList.add('old');
+    else if(ns!==null&&n<ns) g.classList.add('old');
+    else if(ns!==null&&n===ns) g.classList.add('new');});
+  panel.innerHTML=`<p class="stepno">Schritt ${cur} von ${STEPS.length-1}</p><h2>${s.t}</h2>${s.h}
+   <div class="nav"><button id="prev" ${cur===0?"disabled":""}>← Zurück</button><button id="next" class="primary" ${cur===STEPS.length-1?"disabled":""}>Weiter →</button></div>
+   <div class="dots">${STEPS.map((_,i)=>`<button data-i="${i}" class="${i<cur?'done':i===cur?'now':''}" title="${STEPS[i].t}">${i}</button>`).join("")}</div>`;
+  document.getElementById('prev').onclick=()=>{if(cur>0){cur--;show();}};
+  document.getElementById('next').onclick=()=>{if(cur<STEPS.length-1){cur++;show();}};
+  panel.querySelectorAll('.dots button').forEach(b=>b.onclick=()=>{cur=+b.dataset.i;show();});
+}
+document.addEventListener('keydown',e=>{if(e.key==="ArrowRight"&&cur<STEPS.length-1){cur++;show();} if(e.key==="ArrowLeft"&&cur>0){cur--;show();}});
+show();
+</script>
+</body></html>
